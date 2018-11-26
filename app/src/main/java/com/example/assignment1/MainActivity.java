@@ -1,21 +1,16 @@
 package com.example.assignment1;
 
 import android.content.Intent;
-import android.support.v4.app.Fragment;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.text.Editable;
-import android.text.SpannableStringBuilder;
-import android.text.TextWatcher;
-import android.view.KeyEvent;
+import android.support.v7.widget.Toolbar;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.EditText;
 import android.widget.Spinner;
 import android.widget.TextView;
-
-import static java.lang.Double.parseDouble;
 
 public class MainActivity extends AppCompatActivity implements AdapterView.OnItemSelectedListener {
 
@@ -25,13 +20,18 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     TextView inputText;
     TextView outputText;
 
+    Intent intent;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        Intent intent = new Intent(this, conRate.class);
 
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        Toolbar myToolbar = findViewById(R.id.my_toolbar);
+        setSupportActionBar(myToolbar);
+        intent = new Intent(this, conRate.class);
         inputSpin = findViewById(R.id.inputSpinner);
         outputSpin = findViewById(R.id.resultSpin);
         inputText = findViewById(R.id.input);
@@ -40,25 +40,42 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         //startActivity(intent);
     }
 
-   /*     <Spinner
-    android:id="@+id/fromSpinner"
-    android:layout_width="wrap_content"
-    android:layout_height="wrap_content"
-    tools:layout_editor_absoluteX="8dp"
-    tools:layout_editor_absoluteY="77dp"
-    android:layout_marginEnd="32dp"
-    android:layout_marginStart="32dp"
-    android:layout_marginTop="16dp"
-    app:layout_constraintTop_toTopOf="parent"
-    app:layout_constraintLeft_toLeftOf="parent"/>
 
-    <EditText
-    android:inputType="numberDecimal"
-    android:id="@+id/currInput"
-    android:layout_width="match_parent"
-    android:layout_height="wrap_content"
-    app:layout_constraintTop_toBottomOf="@id/fromSpinner"/>
-*/
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.main_menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        switch (item.getItemId()){
+            case R.id.conRates :
+                startActivity(intent);
+                break;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    /*     <Spinner
+            android:id="@+id/fromSpinner"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            tools:layout_editor_absoluteX="8dp"
+            tools:layout_editor_absoluteY="77dp"
+            android:layout_marginEnd="32dp"
+            android:layout_marginStart="32dp"
+            android:layout_marginTop="16dp"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintLeft_toLeftOf="parent"/>
+
+            <EditText
+            android:inputType="numberDecimal"
+            android:id="@+id/currInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:layout_constraintTop_toBottomOf="@id/fromSpinner"/>
+        */
     @Override
     protected void onStart() {
         super.onStart();
@@ -80,38 +97,50 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         CharSequence textString = inputText.getText();
         switch (view.getId()) {
             case R.id.num1:
-                inputText.setText(textString+"1");
+                textString = (textString.length() >= 14) ? textString.subSequence(0, 14) : textString+"1";
+                inputText.setText(textString);
                 break;
             case R.id.num2:
-                inputText.setText(textString+"2");
+                textString = (textString.length() >= 14) ? textString.subSequence(0, 14) : textString+"2";
+                inputText.setText(textString);
                 break;
             case R.id.num3:
-                inputText.setText(textString+"3");
+                textString = (textString.length() >= 14) ? textString.subSequence(0, 14) : textString+"3";
+                inputText.setText(textString);
                 break;
             case R.id.num4:
-                inputText.setText(textString+"4");
+                textString = (textString.length() >= 14) ? textString.subSequence(0, 14) : textString+"4";
+                inputText.setText(textString);
                 break;
             case R.id.num5:
-                inputText.setText(textString+"5");
+                textString = (textString.length() >= 14) ? textString.subSequence(0, 14) : textString+"5";
+                inputText.setText(textString);
                 break;
             case R.id.num6:
-                inputText.setText(textString+"6");
+                textString = (textString.length() >= 14) ? textString.subSequence(0, 14) : textString+"6";
+                inputText.setText(textString);
                 break;
             case R.id.num7:
-                inputText.setText(textString+"7");
+                textString = (textString.length() >= 14) ? textString.subSequence(0, 14) : textString+"7";
+                inputText.setText(textString);
                 break;
             case R.id.num8:
-                inputText.setText(textString+"8");
+                textString = (textString.length() >= 14) ? textString.subSequence(0, 14) : textString+"8";
+                inputText.setText(textString);
                 break;
             case R.id.num9:
-                inputText.setText(textString+"9");
+                textString = (textString.length() >= 14) ? textString.subSequence(0, 14) : textString+"9";
+                inputText.setText(textString);
                 break;
             case R.id.num0:
-                inputText.setText(textString+"0");
+                textString = (textString.length() >= 14) ? textString.subSequence(0, 14) : textString+"0";
+                inputText.setText(textString);
                 break;
             case R.id.numdot:
-                if(!textString.toString().contains(".") && textString.length() != 0)
-                inputText.setText(textString+".");
+                if(!textString.toString().contains(".") && textString.length() != 0){
+                    textString = (textString.length() >= 14) ? textString.subSequence(0, 14) : textString+".";
+                    inputText.setText(textString);
+                }
                 break;
             case R.id.backspace:
                 if(textString.length() != 0)
@@ -119,6 +148,10 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 break;
         }
         String output = rates.convert(inputSpin.getSelectedItem().toString(),outputSpin.getSelectedItem().toString(),inputText.getText().toString());
+        if(output.length() > 14)
+        {
+            output = output.substring(0,14);
+        }
         outputText.setText(output);
     }
 
@@ -126,6 +159,10 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     //@Override
     public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
         String output = rates.convert(inputSpin.getSelectedItem().toString(),outputSpin.getSelectedItem().toString(),inputText.getText().toString());
+        if(output.length() > 14)
+        {
+            output = output.substring(0,14);
+        }
         outputText.setText(output);
     }
 

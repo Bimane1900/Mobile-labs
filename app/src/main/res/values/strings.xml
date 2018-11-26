@@ -1,3 +1,7 @@
 <resources>
     <string name="app_name">Currency Converter</string>
+    <string name="to">TO</string>
+    <string name="convertion_rates">Conversion Rates</string>
+    <string name="go_back">go_back</string>
+    <string name="go_to_main">Go back</string>
 </resources>

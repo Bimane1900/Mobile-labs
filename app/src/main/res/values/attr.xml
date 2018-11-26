@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="currencyTheme">
+        <attr name="colorPrimary" format="color|reference"/>
+        <attr name="primaryLightColor" format="color|reference"/>
+        <attr name="primaryDarkColor" format="color|reference"/>
+        <attr name="secondaryColor" format="color|reference"/>
+        <attr name="secondaryLightColor" format="color|reference"/>
+        <attr name="secondaryDarkColor" format="color|reference"/>
+        <attr name="primaryTextColor" format="color|reference"/>
+        <attr name="secondaryTextColor" format="color|reference"/>
+    </declare-styleable>
+</resources>
