@@ -1,9 +1,14 @@
 package com.example.assignment1;
 
+import android.content.Context;
 import android.content.Intent;
+import android.net.http.HttpResponseCache;
+import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.Toolbar;
+import android.util.JsonReader;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -11,23 +16,47 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.Toast;
+
+import org.json.JSONObject;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLConnection;
+import java.security.cert.Certificate;
+
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLPeerUnverifiedException;
 
 public class MainActivity extends AppCompatActivity implements AdapterView.OnItemSelectedListener {
 
-    ConversionRates rates = new ConversionRates();
+    //ConversionRates rates = new ConversionRates();
     Spinner inputSpin;
     Spinner outputSpin;
     TextView inputText;
     TextView outputText;
-
+    String country ="";
     Intent intent;
 
+
+
+
+    public Context getContext(){
+        return MainActivity.this;
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
         super.onCreate(savedInstanceState);
+        getLocation();
         setContentView(R.layout.activity_main);
+        ConversionRates.getRateFromEur();
 
         Toolbar myToolbar = findViewById(R.id.my_toolbar);
         setSupportActionBar(myToolbar);
@@ -36,8 +65,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         outputSpin = findViewById(R.id.resultSpin);
         inputText = findViewById(R.id.input);
         outputText = findViewById(R.id.result);
-        //setRates();
-        //startActivity(intent);
+        if(savedInstanceState != null)
+            System.out.println("asd: "+ savedInstanceState.getString("TEST"));
     }
 
 
@@ -45,6 +74,13 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.main_menu, menu);
         return true;
+    }
+
+    @Override
+    protected void onRestoreInstanceState(Bundle savedInstanceState) {
+        super.onRestoreInstanceState(savedInstanceState);
+        if(savedInstanceState != null)
+            System.out.println("RESTORE: "+ savedInstanceState.getString("TEST"));
     }
 
     @Override
@@ -57,29 +93,53 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         return super.onOptionsItemSelected(item);
     }
 
-    /*     <Spinner
-            android:id="@+id/fromSpinner"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            tools:layout_editor_absoluteX="8dp"
-            tools:layout_editor_absoluteY="77dp"
-            android:layout_marginEnd="32dp"
-            android:layout_marginStart="32dp"
-            android:layout_marginTop="16dp"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintLeft_toLeftOf="parent"/>
-
-            <EditText
-            android:inputType="numberDecimal"
-            android:id="@+id/currInput"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:layout_constraintTop_toBottomOf="@id/fromSpinner"/>
-        */
     @Override
     protected void onStart() {
         super.onStart();
         setRates();
+        System.out.println("START");
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        //ey = "Bamboozle";
+        System.out.println("DESTROY");
+    }
+
+    @Override
+    protected void onRestart() {
+        super.onRestart();
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        System.out.println("RESUME");
+        //if(country.length() > 0)
+        //setCurrToLocation();
+        //Toast.makeText(this, "RESUME", Toast.LENGTH_LONG).show();
+
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        System.out.println("PAUSE");
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        System.out.println("STOP");
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putString("TEST", "THIS IS SAVED");
+        System.out.println("SAVED");
     }
 
     void setRates(){
@@ -89,8 +149,38 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         outputSpin.setAdapter(adapter);
         inputSpin.setOnItemSelectedListener(this);
         outputSpin.setOnItemSelectedListener(this);
+
     }
 
+    void setCurrToLocation() {
+        //country = "Korea";
+        System.out.println("COUNTRY: "+country);
+        switch (country){
+            case "USA":
+                inputSpin.setSelection(0);
+                break;
+            case "Sweden":
+                inputSpin.setSelection(1);
+                break;
+            case "Japan":
+                inputSpin.setSelection(3);
+                break;
+            case "Korea":
+                inputSpin.setSelection(4);
+                break;
+            case "England":
+                inputSpin.setSelection(5);
+                break;
+            case "China":
+                inputSpin.setSelection(6);
+                break;
+            default:
+                inputSpin.setSelection(2);
+        }
+        /*if (country.equals("Sweden")) {
+            inputSpin.setSelection(1);
+        }*/
+    }
     public void keyboardInput(View view){
         System.out.println(view.getId());
         System.out.println(R.id.num1);
@@ -147,7 +237,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 inputText.setText(inputText.getText().subSequence(0,inputText.length()-1));
                 break;
         }
-        String output = rates.convert(inputSpin.getSelectedItem().toString(),outputSpin.getSelectedItem().toString(),inputText.getText().toString());
+        String output = ConversionRates.convert(inputSpin.getSelectedItem().toString(),outputSpin.getSelectedItem().toString(),inputText.getText().toString());
         if(output.length() > 14)
         {
             output = output.substring(0,14);
@@ -156,97 +246,55 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     }
 
 
-    //@Override
+    @Override
     public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-        String output = rates.convert(inputSpin.getSelectedItem().toString(),outputSpin.getSelectedItem().toString(),inputText.getText().toString());
+        String output = ConversionRates.convert(inputSpin.getSelectedItem().toString(),outputSpin.getSelectedItem().toString(),inputText.getText().toString());
         if(output.length() > 14)
         {
             output = output.substring(0,14);
         }
         outputText.setText(output);
+
     }
 
 
-    /*void convert(String currency, String currency2, String value){
-        //String currency = inputSpin.getSelectedItem().toString();
-        //String currency2 = outputSpin.getSelectedItem().toString();
-        double input = (value.equals("")) ? 0 : parseDouble(value);
-        if (currency == currency2){outputText.setText(String.valueOf(input));}
-        else {
-            switch (currency) {
-                case "SEK":
-                    input = input * rates.SEKtoUSD;
-                    convertFromUSD(input);
-                    System.out.println(rates.SEKtoUSD);
-                    break;
-                case "GBP":
-                    input = input * rates.GBPtoUSD;
-                    convertFromUSD(input);
-                    break;
-                case "EUR":
-                    input = input * rates.EURtoUSD;
-                    convertFromUSD(input);
-                    break;
-                case "CNY":
-                    input = input * rates.CNYtoUSD;
-                    convertFromUSD(input);
-                    break;
-                case "JPY":
-                    input = input * rates.JPYtoUSD;
-                    convertFromUSD(input);
-                    break;
-                case "KRW":
-                    input = input * rates.KRWtoUSD;
-                    convertFromUSD(input);
-                    break;
-                default:
-                    convertFromUSD(input);
-                    break;
+    public void getLocation(){
+        AsyncTask.execute(new Runnable() {
+            @Override
+            public void run() {
+                try{
+                    URL apiUrl =  new URL("https://api.myip.com/");
+                    try {
+                        HttpURLConnection connection = (HttpURLConnection) apiUrl.openConnection();
+                        InputStream response = connection.getInputStream();
+                        InputStreamReader reader = new InputStreamReader(response, "UTF-8");
+                        JsonReader json = new JsonReader(reader);
+                        json.beginObject();
+                        String key;
+                        while(json.hasNext()){
+                            key = json.nextName();
+                            if(key.equals("country")){
 
+                                country = json.nextString();
+                            }
+                            else{
+                                json.skipValue();
+                            }
+                        }
+                        setCurrToLocation();
+                    }
+                    catch (Exception e){
+                        Log.e("Connection", e.getMessage());
+                    }
+                }
+                catch (MalformedURLException e){
+                    Log.e("URL", e.getMessage());
+                }
             }
-        }
-    }*/
+        });
+    }
 
-    /*public String convertFromUSD(double input, String currency){
-        //String currency = outputSpin.getSelectedItem().toString();
-        switch (currency){
-            case "SEK":
-                input = input*rates.USDtoSEK;
-                //outputText.setText(String.valueOf(input));
-                return String.valueOf(input);
-                //break;
-            case "GBP":
-                input = input*rates.USDtoGBP;
-                //outputText.setText(String.valueOf(input));
-                return String.valueOf(input);
-                //break;
-            case "EUR":
-                input = input*rates.USDtoEUR;
-                //outputText.setText(String.valueOf(input));
-                return String.valueOf(input);
-                //break;
-            case "CNY":
-                input = input*rates.USDtoCNY;
-                //outputText.setText(String.valueOf(input));
-                return String.valueOf(input);
-                //break;
-            case "JPY":
-                input = input*rates.USDtoJPY;
-                //outputText.setText(String.valueOf(input));
-                return String.valueOf(input);
-                //break;
-            case "KRW":
-                input = input*rates.USDtoKRW;
-                //outputText.setText(String.valueOf(input));
-                return String.valueOf(input);
-                //break;
-            default:
-                //outputText.setText(String.valueOf(input));
-                return String.valueOf(input);
-                //break;
-        }
-    }*/
-    //@Override
+    @Override
     public void onNothingSelected(AdapterView<?> parent) {
 
     }

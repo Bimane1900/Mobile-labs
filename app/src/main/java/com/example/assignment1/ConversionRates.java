@@ -1,98 +1,88 @@
 package com.example.assignment1;
 
+import android.app.Application;
+import android.content.Context;
+import android.content.pm.ApplicationInfo;
+import android.os.AsyncTask;
+import android.util.JsonReader;
+import android.util.Log;
+import android.widget.Toast;
+
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.security.KeyPair;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Hashtable;
+import java.util.List;
+import java.util.Set;
+
+import javax.net.ssl.HttpsURLConnection;
+
 import static java.lang.Double.parseDouble;
 
 public class ConversionRates {
-    public double SEKtoUSD = 0.11;
-    public double GBPtoUSD = 1.28;
-    public double EURtoUSD = 1.13;
-    public double CNYtoUSD = 0.14;
-    public double JPYtoUSD = 0.0088;
-    public double KRWtoUSD = 0.00088;
-    public double USDtoSEK = 9.006;
-    public double USDtoGBP = 0.78;
-    public double USDtoEUR = 0.88;
-    public double USDtoCNY = 6.94;
-    public double USDtoJPY = 1126.13;
-    public double USDtoKRW = 112.82;
 
-    public String convert(String currency, String currency2, String value){
-        //String currency = inputSpin.getSelectedItem().toString();
-        //String currency2 = outputSpin.getSelectedItem().toString();
+    public static Hashtable<String, String> table = new Hashtable<String, String>();
+
+    public static String convert(String currency, String currency2, String value){
         double input = (value.equals("")) ? 0 : parseDouble(value);
-        if (currency == currency2){return String.valueOf(input);}
-        else {
-            switch (currency) {
-                case "SEK":
-                    input = input * SEKtoUSD;
-                    return convertFromUSD(input, currency2);
-                    //System.out.println(SEKtoUSD);
-                    //break;
-                case "GBP":
-                    input = input * GBPtoUSD;
-                    return convertFromUSD(input, currency2);
-                    //break;
-                case "EUR":
-                    input = input * EURtoUSD;
-                    return convertFromUSD(input, currency2);
-                    //break;
-                case "CNY":
-                    input = input * CNYtoUSD;
-                    return convertFromUSD(input, currency2);
-                    //break;
-                case "JPY":
-                    input = input * JPYtoUSD;
-                    return convertFromUSD(input, currency2);
-                    //break;
-                case "KRW":
-                    input = input * KRWtoUSD;
-                    return convertFromUSD(input, currency2);
-                    //break;
-                default:
-                    return convertFromUSD(input, currency2);
-                    //break;
+        if (currency.equals(currency2)){return String.valueOf(input);}
 
-            }
+        else {
+            input = input / parseDouble(table.get(currency));
+            return convertFromUSD(input, currency2);
         }
     }
 
-    public String convertFromUSD(double input, String currency){
-        //String currency = outputSpin.getSelectedItem().toString();
-        switch (currency){
-            case "SEK":
-                input = input*USDtoSEK;
-                //outputText.setText(String.valueOf(input));
-                return String.valueOf(input);
-            //break;
-            case "GBP":
-                input = input*USDtoGBP;
-                //outputText.setText(String.valueOf(input));
-                return String.valueOf(input);
-            //break;
-            case "EUR":
-                input = input*USDtoEUR;
-                //outputText.setText(String.valueOf(input));
-                return String.valueOf(input);
-            //break;
-            case "CNY":
-                input = input*USDtoCNY;
-                //outputText.setText(String.valueOf(input));
-                return String.valueOf(input);
-            //break;
-            case "JPY":
-                input = input*USDtoJPY;
-                //outputText.setText(String.valueOf(input));
-                return String.valueOf(input);
-            //break;
-            case "KRW":
-                input = input*USDtoKRW;
-                //outputText.setText(String.valueOf(input));
-                return String.valueOf(input);
-            //break;
-            default:
-                //outputText.setText(String.valueOf(input));
-                return String.valueOf(input);
-            //break;
-        }
+    public static String convertFromUSD(double input, String currency){
+        input = input * parseDouble(table.get(currency));
+        return String.valueOf(input);
+    }
+
+    public static void getRateFromEur(){
+        AsyncTask.execute(new Runnable() {
+            @Override
+            public void run() {
+                try{
+                    URL apiUrl =  new URL("http://data.fixer.io/api/latest?access_key=bbff8409662051ed5e8e4d2a99dc38e0");
+                    try {
+                        HttpURLConnection connection = (HttpURLConnection) apiUrl.openConnection();
+                        InputStream response = connection.getInputStream();
+                        InputStreamReader reader = new InputStreamReader(response, "UTF-8");
+                        JsonReader json = new JsonReader(reader);
+                        json.beginObject();
+                        String key, currency;
+                        double value;
+                        while(json.hasNext()){
+                            key = json.nextName();
+                            if(key.equals("rates")){
+                                json.beginObject();
+                                while(json.hasNext()){
+                                    currency = json.nextName();
+                                    value = json.nextDouble();
+                                    table.put(currency, String.valueOf(value));
+                                }
+                            }
+                            else{
+                                json.skipValue();
+                            }
+                        }
+                        System.out.println("WHILE DONE");
+                    }
+                    catch (Exception e){
+                        Log.e("Connection", e.getMessage());
+                    }
+                }
+                catch (MalformedURLException e){
+                    Log.e("URL", e.getMessage());
+                }
+                System.out.println("I AM IN OK");
+            }
+        });
+        System.out.println("IM DONE OK");
     }
 }
