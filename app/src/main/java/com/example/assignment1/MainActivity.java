@@ -2,7 +2,8 @@ package com.example.assignment1;
 
 import android.content.Context;
 import android.content.Intent;
-import android.net.http.HttpResponseCache;
+import android.content.SharedPreferences;
+import android.net.ConnectivityManager;
 import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -16,22 +17,16 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Spinner;
 import android.widget.TextView;
-import android.widget.Toast;
 
-import org.json.JSONObject;
-
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.net.URLConnection;
-import java.security.cert.Certificate;
-
-import javax.net.ssl.HttpsURLConnection;
-import javax.net.ssl.SSLPeerUnverifiedException;
+import java.util.Hashtable;
+import java.util.Map;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class MainActivity extends AppCompatActivity implements AdapterView.OnItemSelectedListener {
 
@@ -41,22 +36,17 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     TextView inputText;
     TextView outputText;
     String country ="";
+    String code = "EUR";
     Intent intent;
-
-
-
-
-    public Context getContext(){
-        return MainActivity.this;
-    }
+    ArrayAdapter<String> adapter;
+    countryTasker getCountry = new countryTasker();
+    SharedPreferences data;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
         super.onCreate(savedInstanceState);
-        getLocation();
         setContentView(R.layout.activity_main);
-        ConversionRates.getRateFromEur();
 
         Toolbar myToolbar = findViewById(R.id.my_toolbar);
         setSupportActionBar(myToolbar);
@@ -65,8 +55,60 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         outputSpin = findViewById(R.id.resultSpin);
         inputText = findViewById(R.id.input);
         outputText = findViewById(R.id.result);
-        if(savedInstanceState != null)
-            System.out.println("asd: "+ savedInstanceState.getString("TEST"));
+        data = this.getSharedPreferences("currency", MODE_PRIVATE);
+        if(isNetworkAvailable(this)){
+            ConversionRates.getRateFromEur();
+            getCountry.execute();
+            System.out.println("Online");
+        }
+        else{
+            readRateFromCache();
+            System.out.println("Offline");
+        }
+
+        ConversionRates.updateRateTimer();
+        //ConversionRates.getCountryCurrencies();
+
+        setRates();
+
+        inputSpin.setSelection(adapter.getPosition("EUR"));
+
+
+    }
+
+    void saveToCache(){
+        new Timer().scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                SharedPreferences.Editor currencyEdit = data.edit();
+                Hashtable<String, String> clone = (Hashtable<String, String>) ConversionRates.rates.clone();
+                for (Map.Entry<String, String> entry : clone.entrySet()) {
+                    String key = entry.getKey();
+                    String value = entry.getValue();
+                    currencyEdit.putString(key, value);
+                }
+                currencyEdit.apply();
+            }
+        },0, 10000);
+    }
+
+    public boolean isNetworkAvailable(final Context context) {
+        final ConnectivityManager connectivityManager = ((ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE));
+        return connectivityManager.getActiveNetworkInfo() != null && connectivityManager.getActiveNetworkInfo().isConnected();
+    }
+
+    private void readRateFromCache() {
+        try{
+            for (Map.Entry<String, ?> entry : data.getAll().entrySet()) {
+                String key = entry.getKey();
+                String value = String.valueOf(entry.getValue());
+                System.out.println ("Key: " + key + " Value: " + value);
+                ConversionRates.rates.put(key,value);
+            }
+        }
+        catch (Exception e){
+            System.out.println("reading: "+ e);
+        }
     }
 
 
@@ -79,14 +121,13 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     @Override
     protected void onRestoreInstanceState(Bundle savedInstanceState) {
         super.onRestoreInstanceState(savedInstanceState);
-        if(savedInstanceState != null)
-            System.out.println("RESTORE: "+ savedInstanceState.getString("TEST"));
     }
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         switch (item.getItemId()){
             case R.id.conRates :
+                intent.putExtra("countryCode", code);
                 startActivity(intent);
                 break;
         }
@@ -95,15 +136,14 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
     @Override
     protected void onStart() {
+        saveToCache();
         super.onStart();
-        setRates();
         System.out.println("START");
     }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        //ey = "Bamboozle";
         System.out.println("DESTROY");
     }
 
@@ -117,9 +157,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         super.onResume();
 
         System.out.println("RESUME");
-        //if(country.length() > 0)
-        //setCurrToLocation();
-        //Toast.makeText(this, "RESUME", Toast.LENGTH_LONG).show();
+        ConversionRates.getRateFromEur();
 
     }
 
@@ -138,52 +176,76 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     @Override
     protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
-        outState.putString("TEST", "THIS IS SAVED");
         System.out.println("SAVED");
     }
 
     void setRates(){
         String[] currencies = new String[] {"USD", "SEK", "EUR", "JPY", "KRW", "GBP", "CNY"};
-        ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_dropdown_item, currencies);
+        adapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_dropdown_item, currencies);
         inputSpin.setAdapter(adapter);
         outputSpin.setAdapter(adapter);
         inputSpin.setOnItemSelectedListener(this);
         outputSpin.setOnItemSelectedListener(this);
-
     }
 
-    void setCurrToLocation() {
-        //country = "Korea";
+    void setInputCurrency(){
+        for (Map.Entry<String, String> entry : ConversionRates.rates.entrySet()) {
+            String key = entry.getKey();
+            String value = entry.getValue();
+
+            System.out.println ("Key: " + key + " Value: " + value);
+        }
+        for (Map.Entry<String, String> entry : ConversionRates.countryCodes.entrySet()) {
+            String key = entry.getKey();
+            String value = entry.getValue();
+
+            System.out.println ("Key: " + key + " Value: " + value);
+        }
+        System.out.println("setInputCUrrency: "+ ConversionRates.countryCodes.get(country) + " country: "+country);
+        String code;
+        try{
+            code = ConversionRates.countryCodes.get(country);
+            System.out.println("code: "+code);
+            adapter.add(code);
+            int pos = adapter.getPosition(code);
+            inputSpin.setSelection(pos);
+        }
+        catch(Exception e){
+            inputSpin.setSelection(adapter.getPosition("EUR"));
+            System.out.println("Currency not found");
+            System.out.println("setInputCurreny: "+e.getMessage());
+        }
+    }
+
+    void setCurrToLocation(String country) {
         System.out.println("COUNTRY: "+country);
         switch (country){
             case "USA":
-                inputSpin.setSelection(0);
+                code = "USD";
                 break;
             case "Sweden":
-                inputSpin.setSelection(1);
+                code = "SEK";
                 break;
             case "Japan":
-                inputSpin.setSelection(3);
+                code = "JPY";
                 break;
             case "Korea":
-                inputSpin.setSelection(4);
+                code = "KRW";
                 break;
             case "England":
-                inputSpin.setSelection(5);
+                code = "GBP";
                 break;
             case "China":
-                inputSpin.setSelection(6);
+                code = "CNY";
                 break;
             default:
-                inputSpin.setSelection(2);
+                code = "EUR";
         }
-        /*if (country.equals("Sweden")) {
-            inputSpin.setSelection(1);
-        }*/
+
+        int pos = adapter.getPosition(code);
+        inputSpin.setSelection(pos);
     }
     public void keyboardInput(View view){
-        System.out.println(view.getId());
-        System.out.println(R.id.num1);
         CharSequence textString = inputText.getText();
         switch (view.getId()) {
             case R.id.num1:
@@ -238,32 +300,31 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 break;
         }
         String output = ConversionRates.convert(inputSpin.getSelectedItem().toString(),outputSpin.getSelectedItem().toString(),inputText.getText().toString());
-        if(output.length() > 14)
-        {
-            output = output.substring(0,14);
-        }
+        if(output.length() > 14) { output = output.substring(0,14); }
+        if(output.endsWith(".") || output.endsWith(",")) { output = output.substring(0,output.length()-1); }
         outputText.setText(output);
     }
 
 
     @Override
     public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
-        String output = ConversionRates.convert(inputSpin.getSelectedItem().toString(),outputSpin.getSelectedItem().toString(),inputText.getText().toString());
-        if(output.length() > 14)
-        {
-            output = output.substring(0,14);
+        try{
+            String output = ConversionRates.convert(inputSpin.getSelectedItem().toString(),outputSpin.getSelectedItem().toString(),inputText.getText().toString());
+            if(output.length() > 14) { output = output.substring(0,14); }
+            if(output.endsWith(".") || output.endsWith(",")) { output = output.substring(0,output.length()-1); }
+            outputText.setText(output);
         }
-        outputText.setText(output);
-
+        catch (Exception e){
+            System.out.println("onItemSelected: "+e);
+        }
     }
-
 
     public void getLocation(){
         AsyncTask.execute(new Runnable() {
             @Override
             public void run() {
-                try{
-                    URL apiUrl =  new URL("https://api.myip.com/");
+                try {
+                    URL apiUrl = new URL("https://api.myip.com/");
                     try {
                         HttpURLConnection connection = (HttpURLConnection) apiUrl.openConnection();
                         InputStream response = connection.getInputStream();
@@ -271,24 +332,20 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                         JsonReader json = new JsonReader(reader);
                         json.beginObject();
                         String key;
-                        while(json.hasNext()){
+                        while (json.hasNext()) {
                             key = json.nextName();
-                            if(key.equals("country")){
+                            if (key.equals("country")) {
 
                                 country = json.nextString();
-                            }
-                            else{
+                            } else {
                                 json.skipValue();
                             }
                         }
-                        setCurrToLocation();
+                    } catch (Exception e) {
+                        Log.e("Con myip", e.getMessage());
                     }
-                    catch (Exception e){
-                        Log.e("Connection", e.getMessage());
-                    }
-                }
-                catch (MalformedURLException e){
-                    Log.e("URL", e.getMessage());
+                } catch (MalformedURLException e) {
+                    Log.e("URL myip", e.getMessage());
                 }
             }
         });
@@ -298,4 +355,45 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     public void onNothingSelected(AdapterView<?> parent) {
 
     }
+
+    public class countryTasker extends AsyncTask<String, Integer, String> {
+
+        @Override
+        protected String doInBackground(String... strings) {
+            String country = "";
+            try {
+                URL apiUrl = new URL("https://api.myip.com/");
+                try {
+                    HttpURLConnection connection = (HttpURLConnection) apiUrl.openConnection();
+                    InputStream response = connection.getInputStream();
+                    InputStreamReader reader = new InputStreamReader(response, "UTF-8");
+                    JsonReader json = new JsonReader(reader);
+                    json.beginObject();
+                    String key;
+                    while (json.hasNext()) {
+                        key = json.nextName();
+                        if (key.equals("country")) {
+
+                            country = json.nextString();
+                        } else {
+                            json.skipValue();
+                        }
+                    }
+                } catch (Exception e) {
+                    Log.e("Con myip", e.getMessage());
+                }
+            } catch (MalformedURLException e) {
+                Log.e("URL myip", e.getMessage());
+            }
+            return country;
+        }
+
+        @Override
+        protected void onPostExecute(String s) {
+            country = s;
+            setCurrToLocation(country);
+        }
+    }
+
+
 }

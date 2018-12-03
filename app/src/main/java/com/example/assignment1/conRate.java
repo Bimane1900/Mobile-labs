@@ -29,6 +29,7 @@ public class conRate extends AppCompatActivity implements AdapterView.OnItemSele
     ArrayAdapter<String> adapter;
     //ConversionRates rates = new ConversionRates();
     Intent intent;
+    String countryCode;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,6 +52,21 @@ public class conRate extends AppCompatActivity implements AdapterView.OnItemSele
         inputSpin = findViewById(R.id.SelectSpinner);
         inputSpin.setAdapter(adapter);
         inputSpin.setOnItemSelectedListener(this);
+
+
+        try{
+            countryCode = getIntent().getExtras().getString("countryCode");
+        }catch(Exception e){
+            countryCode = "EUR";
+        }
+        System.out.println("countrycode: "+countryCode);
+        inputSpin.setSelection(adapter.getPosition(countryCode));
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+
     }
 
     @Override
@@ -67,6 +83,12 @@ public class conRate extends AppCompatActivity implements AdapterView.OnItemSele
                 break;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        ConversionRates.getRateFromEur();
     }
 
     @Override

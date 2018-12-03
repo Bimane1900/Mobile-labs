@@ -2,6 +2,7 @@ package com.example.assignment1;
 
 import android.app.Application;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.pm.ApplicationInfo;
 import android.os.AsyncTask;
 import android.util.JsonReader;
@@ -14,11 +15,15 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.security.KeyPair;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import javax.net.ssl.HttpsURLConnection;
 
@@ -26,21 +31,65 @@ import static java.lang.Double.parseDouble;
 
 public class ConversionRates {
 
-    public static Hashtable<String, String> table = new Hashtable<String, String>();
+    public static Hashtable<String, String> rates = new Hashtable<String, String>();
+    public static Hashtable<String, String> countryCodes = new Hashtable<String, String>();
 
     public static String convert(String currency, String currency2, String value){
         double input = (value.equals("")) ? 0 : parseDouble(value);
-        if (currency.equals(currency2)){return String.valueOf(input);}
+        if (currency.equals(currency2)){return value;}
 
         else {
-            input = input / parseDouble(table.get(currency));
-            return convertFromUSD(input, currency2);
+            input = input / parseDouble(rates.get(currency));
+            return convertFromEUR(input, currency2);
         }
     }
 
-    public static String convertFromUSD(double input, String currency){
-        input = input * parseDouble(table.get(currency));
-        return String.valueOf(input);
+    public static String convertFromEUR(double input, String currency){
+        input = input * parseDouble(rates.get(currency));
+        DecimalFormat deci = new DecimalFormat();
+        deci.setMaximumFractionDigits(13);
+        return deci.format(input);
+    }
+
+    public static void getCountryCurrencies(){
+        AsyncTask.execute(new Runnable() {
+            @Override
+            public void run() {
+                try{
+                    URL apiUrl =  new URL("http://data.fixer.io/api/symbols?access_key=bbff8409662051ed5e8e4d2a99dc38e0");
+                    try {
+                        HttpURLConnection connection = (HttpURLConnection) apiUrl.openConnection();
+                        InputStream response = connection.getInputStream();
+                        InputStreamReader reader = new InputStreamReader(response, "UTF-8");
+                        JsonReader json = new JsonReader(reader);
+                        json.beginObject();
+                        String key, currency, country;
+                        while(json.hasNext()){
+                            key = json.nextName();
+                            if(key.equals("symbols")){
+                                json.beginObject();
+                                while(json.hasNext()){
+                                    currency = json.nextName();
+                                    country = json.nextString();
+                                    countryCodes.put(country, currency);
+                                    //System.out.println("currency: "+ currency +", country: "+ country);
+                                }
+                            }
+                            else{
+                                json.skipValue();
+                            }
+                        }
+                        System.out.println("Countries added");
+                    }
+                    catch (Exception e){
+                        Log.e("Con fixer io codes", e.getMessage());
+                    }
+                }
+                catch (MalformedURLException e){
+                    Log.e("URL fixer io codes", e.getMessage());
+                }
+            }
+        });
     }
 
     public static void getRateFromEur(){
@@ -48,7 +97,7 @@ public class ConversionRates {
             @Override
             public void run() {
                 try{
-                    URL apiUrl =  new URL("http://data.fixer.io/api/latest?access_key=bbff8409662051ed5e8e4d2a99dc38e0");
+                    URL apiUrl =  new URL("http://data.fixer.io/api/latest?access_key=cb71145ccc84b760c10775565f0af0a6");
                     try {
                         HttpURLConnection connection = (HttpURLConnection) apiUrl.openConnection();
                         InputStream response = connection.getInputStream();
@@ -64,25 +113,39 @@ public class ConversionRates {
                                 while(json.hasNext()){
                                     currency = json.nextName();
                                     value = json.nextDouble();
-                                    table.put(currency, String.valueOf(value));
+                                    rates.put(currency, String.valueOf(value));
                                 }
                             }
                             else{
                                 json.skipValue();
                             }
                         }
-                        System.out.println("WHILE DONE");
+                        /*for (Map.Entry<String, String> entry : rates.entrySet()) {
+                            String lol = entry.getKey();
+                            String val = entry.getValue();
+                            System.out.println (" IN API Key: " + lol + " Value: " + val);
+                        }*/
+                        System.out.println("Rates updated");
                     }
                     catch (Exception e){
-                        Log.e("Connection", e.getMessage());
+                        Log.e("Connection fixer io", e.getMessage());
                     }
                 }
                 catch (MalformedURLException e){
-                    Log.e("URL", e.getMessage());
+                    Log.e("URL fixer io", e.getMessage());
                 }
-                System.out.println("I AM IN OK");
             }
         });
-        System.out.println("IM DONE OK");
     }
+
+    static void updateRateTimer(){
+        new Timer().scheduleAtFixedRate(new TimerTask() {
+            @Override
+            public void run() {
+                getRateFromEur();
+            }
+        },5000, 360000);
+    }
+
+
 }
