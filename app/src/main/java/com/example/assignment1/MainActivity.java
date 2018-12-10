@@ -71,7 +71,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
 
         setRates();
 
-        inputSpin.setSelection(adapter.getPosition("EUR"));
+
 
 
     }
@@ -89,7 +89,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
                 }
                 currencyEdit.apply();
             }
-        },0, 10000);
+        },0, 60000);
     }
 
     public boolean isNetworkAvailable(final Context context) {
@@ -150,6 +150,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
     @Override
     protected void onRestart() {
         super.onRestart();
+        System.out.println("RESTART");
     }
 
     @Override
@@ -186,6 +187,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         outputSpin.setAdapter(adapter);
         inputSpin.setOnItemSelectedListener(this);
         outputSpin.setOnItemSelectedListener(this);
+        inputSpin.setSelection(adapter.getPosition("EUR"));
     }
 
     void setInputCurrency(){
@@ -302,6 +304,7 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         String output = ConversionRates.convert(inputSpin.getSelectedItem().toString(),outputSpin.getSelectedItem().toString(),inputText.getText().toString());
         if(output.length() > 14) { output = output.substring(0,14); }
         if(output.endsWith(".") || output.endsWith(",")) { output = output.substring(0,output.length()-1); }
+
         outputText.setText(output);
     }
 
@@ -389,8 +392,8 @@ public class MainActivity extends AppCompatActivity implements AdapterView.OnIte
         }
 
         @Override
-        protected void onPostExecute(String s) {
-            country = s;
+        protected void onPostExecute(String response) {
+            country = response;
             setCurrToLocation(country);
         }
     }

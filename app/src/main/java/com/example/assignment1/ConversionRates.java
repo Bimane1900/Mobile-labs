@@ -45,10 +45,16 @@ public class ConversionRates {
     }
 
     public static String convertFromEUR(double input, String currency){
-        input = input * parseDouble(rates.get(currency));
+        String result = "";
         DecimalFormat deci = new DecimalFormat();
         deci.setMaximumFractionDigits(13);
-        return deci.format(input);
+        input = input * parseDouble(rates.get(currency));
+        if(input > 1000000000) result = String.format("%.2fB", input/ 1000000000.0);
+        else result = deci.format(input);
+        //DecimalFormat deci = new DecimalFormat();
+        //deci.setMaximumFractionDigits(13);
+        //String.format("%.2fM", theNumber/ 1000000.0);
+        return result;
     }
 
     public static void getCountryCurrencies(){
@@ -71,7 +77,7 @@ public class ConversionRates {
                                 while(json.hasNext()){
                                     currency = json.nextName();
                                     country = json.nextString();
-                                    countryCodes.put(country, currency);
+                                    //countryCodes.put(country, currency);
                                     //System.out.println("currency: "+ currency +", country: "+ country);
                                 }
                             }
@@ -97,7 +103,7 @@ public class ConversionRates {
             @Override
             public void run() {
                 try{
-                    URL apiUrl =  new URL("http://data.fixer.io/api/latest?access_key=cb71145ccc84b760c10775565f0af0a6");
+                    URL apiUrl =  new URL("http://data.fixer.io/api/latest?access_key=27071389e13bc478b998c2da0dc04208");
                     try {
                         HttpURLConnection connection = (HttpURLConnection) apiUrl.openConnection();
                         InputStream response = connection.getInputStream();
@@ -144,7 +150,7 @@ public class ConversionRates {
             public void run() {
                 getRateFromEur();
             }
-        },5000, 360000);
+        },60000, 360000);
     }
 
 
